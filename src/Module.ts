@@ -2,10 +2,8 @@ import { extractAssignedNames } from '@rollup/pluginutils';
 import { locate } from 'locate-character';
 import MagicString from 'magic-string';
 import { parseAsync } from '../native';
-import ExternalModule from './ExternalModule';
-import type Graph from './Graph';
-import { createInclusionContext } from './ast/ExecutionContext';
 import { convertProgram } from './ast/bufferParsers';
+import { createInclusionContext } from './ast/ExecutionContext';
 import { nodeConstructors } from './ast/nodes';
 import ExportAllDeclaration from './ast/nodes/ExportAllDeclaration';
 import ExportDefaultDeclaration from './ast/nodes/ExportDefaultDeclaration';
@@ -19,8 +17,8 @@ import Literal from './ast/nodes/Literal';
 import type MetaProperty from './ast/nodes/MetaProperty';
 import * as NodeType from './ast/nodes/NodeType';
 import type Program from './ast/nodes/Program';
-import VariableDeclaration from './ast/nodes/VariableDeclaration';
 import type { NodeBase } from './ast/nodes/shared/Node';
+import VariableDeclaration from './ast/nodes/VariableDeclaration';
 import ModuleScope from './ast/scopes/ModuleScope';
 import { type PathTracker, UNKNOWN_PATH } from './ast/utils/PathTracker';
 import ExportDefaultVariable from './ast/variables/ExportDefaultVariable';
@@ -29,6 +27,8 @@ import ExternalVariable from './ast/variables/ExternalVariable';
 import NamespaceVariable from './ast/variables/NamespaceVariable';
 import SyntheticNamedExportVariable from './ast/variables/SyntheticNamedExportVariable';
 import type Variable from './ast/variables/Variable';
+import ExternalModule from './ExternalModule';
+import type Graph from './Graph';
 import type {
 	AstNode,
 	CustomPluginOptions,
@@ -40,7 +40,6 @@ import type {
 	ModuleJSON,
 	ModuleOptions,
 	NormalizedInputOptions,
-	NormalizedJsxOptions,
 	PartialNull,
 	PreserveEntrySignaturesOption,
 	ResolvedId,
@@ -115,7 +114,7 @@ export interface AstContext {
 	) => void;
 	addImport: (node: ImportDeclaration) => void;
 	addImportMeta: (node: MetaProperty) => void;
-	addJsx: () => void;
+	addImportSource: (importSource: string) => void;
 	code: string;
 	deoptimizationTracker: PathTracker;
 	error: (properties: RollupLog, pos: number) => never;
@@ -872,7 +871,7 @@ export default class Module {
 			addExport: this.addExport.bind(this),
 			addImport: this.addImport.bind(this),
 			addImportMeta: this.addImportMeta.bind(this),
-			addJsx: this.addJsx.bind(this),
+			addImportSource: this.addImportSource.bind(this),
 			code, // Only needed for debugging
 			deoptimizationTracker: this.graph.deoptimizationTracker,
 			error: this.error.bind(this),
@@ -1152,14 +1151,9 @@ export default class Module {
 		}
 	}
 
-	private addJsx(): void {
-		const jsx = this.options.jsx as NormalizedJsxOptions;
-		if (jsx.importSource && !this.sourcesWithAttributes.has(jsx.importSource)) {
-			this.sourcesWithAttributes.set(jsx.importSource, EMPTY_OBJECT);
-		}
-		// TODO Lukas is this needed?
-		if (jsx.mode === 'automatic' && !this.sourcesWithAttributes.has(jsx.jsxImportSource)) {
-			this.sourcesWithAttributes.set(jsx.jsxImportSource, EMPTY_OBJECT);
+	private addImportSource(importSource: string): void {
+		if (importSource && !this.sourcesWithAttributes.has(importSource)) {
+			this.sourcesWithAttributes.set(importSource, EMPTY_OBJECT);
 		}
 	}
 
